@@ -3,300 +3,311 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 )
 
 type SURFACE struct {
-	flags        uint32
-	textureIndex uint16
-	textureFlags uint16
+	Flags        uint32
+	TextureIndex uint16
+	TextureFlags uint16
 }
 
 type VEC2 struct {
-	x float32
-	y float32
+	X float32
+	Y float32
 }
 
 type VEC3 struct {
-	x float32
-	y float32
-	z float32
+	X float32
+	Y float32
+	Z float32
 }
 
 type COLOR struct {
-	r float32
-	g float32
-	b float32
+	R float32
+	G float32
+	B float32
 }
 
 type QUATERNION struct {
-	x float32
-	y float32
-	z float32
-	w float32
+	X float32
+	Y float32
+	Z float32
+	W float32
 }
 
 type TRIANGLE struct {
-	t         [3]uint32
-	polyIndex uint32
+	T         [3]uint32
+	PolyIndex uint32
 }
 
 type PLANE struct {
-	normal VEC3
-	dist   float32
+	Normal VEC3
+	Dist   float32
 }
 
 type VERTEX struct {
-	vPos      VEC3
-	uv0       VEC2
-	uv1       VEC2
-	color     int32
-	vNormal   VEC3
-	vTangent  VEC3
-	vBinormal VEC3
+	VPos      VEC3
+	Uv0       VEC2
+	Uv1       VEC2
+	Color     int32
+	VNormal   VEC3
+	VTangent  VEC3
+	VBinormal VEC3
 }
 
 type POLYGON struct {
-	plane   PLANE
-	vertLen uint32
-	vertPos []VEC3
+	Plane   PLANE
+	VertLen uint32
+	VertPos []VEC3
 }
 
 type WMPOLYGON struct {
-	surfaceIndex     uint32
-	planeIndex       uint32
-	verticesIndicies []uint32
+	SurfaceIndex     uint32
+	PlaneIndex       uint32
+	VerticesIndicies []uint32
 }
 
 type WMNODE struct {
-	polyIndex         uint32
-	zero              uint32   // unused leaves
-	nodeSidesIndicies [2]int32 // children? // -1 == NODE_IN, -2 == NODE_OUT
+	PolyIndex         uint32
+	Zero              uint32   // unused leaves
+	NodeSidesIndicies [2]int32 // children? // -1 == NODE_IN, -2 == NODE_OUT
 }
 
 type WORLDMODEL struct {
-	dummy             uint32
-	worldInfoFlags    uint32
-	worldName         string
-	pointsLen         uint32
-	planesLen         uint32
-	surfacesLen       uint32
-	portals           uint32
-	poliesLen         uint32
-	leavesLen         uint32
-	poliesVerticesLen uint32
-	visibleListLen    uint32
-	leafList          uint32
-	nodesLen          uint32
+	Dummy             uint32
+	WorldInfoFlags    uint32
+	WorldName         string
+	PointsLen         uint32
+	PlanesLen         uint32
+	SurfacesLen       uint32
+	Portals           uint32
+	PoliesLen         uint32
+	LeavesLen         uint32
+	PoliesVerticesLen uint32
+	VisibleListLen    uint32
+	LeafList          uint32
+	NodesLen          uint32
 
-	worldBBoxMin     VEC3
-	worldBBoxMax     VEC3
-	worldTranslation VEC3
+	WorldBBoxMin     VEC3
+	WorldBBoxMax     VEC3
+	WorldTranslation VEC3
 
-	textureNamesSize uint32
-	textureNamesLen  uint32
-	textureNames     []string
+	TextureNamesSize uint32
+	TextureNamesLen  uint32
+	TextureNames     []string
 
 	// number of verticesIndicies for polies
-	verticesLen []uint8
-	planes      []PLANE
-	surfaces    []SURFACE
-	polies      []WMPOLYGON
+	VerticesLen []uint8
+	Planes      []PLANE
+	Surfaces    []SURFACE
+	Polies      []WMPOLYGON
 
-	nodes []WMNODE
+	Nodes []WMNODE
 
-	points []VEC3
+	Points []VEC3
 
-	rootNodeIndex int32
-	sections      uint32 // unused (allways zero)
+	RootNodeIndex int32
+	Sections      uint32 // unused (allways zero)
 }
 
 type WORLDTREE struct {
-	rootBBoxMin    VEC3
-	rootBBoxMax    VEC3
-	subNodesLen    uint32
-	terrainDepth   uint32
-	worldLayout    []uint8
-	worldModelsLen uint32
-	worldModels    []WORLDMODEL
+	RootBBoxMin    VEC3
+	RootBBoxMax    VEC3
+	SubNodesLen    uint32
+	TerrainDepth   uint32
+	WorldLayout    []uint8
+	WorldModelsLen uint32
+	WorldModels    []WORLDMODEL
 }
 
 type PROPERTY struct {
-	name           string
-	dataTypeFlag   uint8 // 0: string, 1: VEC3, 2: COLOR, 3: Float, 5: uint8, 6: uint16, 7: QUATERNION
-	propertyFlags  uint64
-	dataSize       uint16
-	dataString     string
-	dataVEC3       VEC3
-	dataCOLOR      COLOR
-	dataFloat      float32
-	dataUint8      uint8
-	dataUint16     uint16
-	dataQuaternion QUATERNION
-	data           []byte
+	Name           string
+	DataTypeFlag   uint8 // 0: string, 1: VEC3, 2: COLOR, 3: Float, 5: uint8, 6: uint16, 7: QUATERNION
+	PropertyFlags  uint32
+	DataSize       uint16
+	DataString     string
+	DataVEC3       VEC3
+	DataCOLOR      COLOR
+	DataFloat      float32
+	DataBool       bool
+	DataUint32     uint32
+	DataQuaternion QUATERNION
+	Data           []byte
 }
 
 type WORLDOBJECT struct {
-	objectSize    uint16
-	objectType    string
-	propertiesLen uint32
-	properties    []PROPERTY
+	ObjectSize    uint16
+	ObjectType    string
+	PropertiesLen uint32
+	Properties    []PROPERTY
 }
 
 type LIGHTGRID struct {
-	lookupStart VEC3
-	blockSize   VEC3
-	lookupSize  [3]uint32
-	lgDataLen   uint32
-	lgData      []byte // RLE compressed data
+	LookupStart VEC3
+	BlockSize   VEC3
+	LookupSize  [3]uint32
+	LgDataLen   uint32
+	LgData      []byte // RLE compressed data
 }
 
 type VERTICESPOS struct {
-	len  uint8
-	data []VEC3
+	Len  uint8
+	Data []VEC3
 }
 
 type SKYPORTAL struct {
-	verticesPos VERTICESPOS
-	plane       PLANE
+	VerticesPos VERTICESPOS
+	Plane       PLANE
 }
 
 type OCCLUDER struct {
-	verticesPos VERTICESPOS
-	plane       PLANE
-	other       uint32
+	VerticesPos VERTICESPOS
+	Plane       PLANE
+	Other       uint32
 }
 
 type SECTION struct {
-	textureName    []string
-	shaderCode     uint8
-	triangleCount  uint32
-	textureEffect  string
-	lightMapWidth  uint32
-	lightMapHeight uint32
-	lightMapSize   uint32
-	lightMapData   []byte // compressed
+	TextureName    []string
+	ShaderCode     uint8
+	TriangleCount  uint32
+	TextureEffect  string
+	LightMapWidth  uint32
+	LightMapHeight uint32
+	LightMapSize   uint32
+	LightMapData   []byte // compressed
 }
 
 type SUBLM struct {
-	left   uint32
-	top    uint32
-	width  uint32
-	height uint32
+	Left   uint32
+	Top    uint32
+	Width  uint32
+	Height uint32
 	// RLE encoded data ubyte|ubyte|ubyte 0xFF|runCount|curData
-	dataLen uint32
-	data    []byte
+	DataLen uint32
+	Data    []byte
 }
 
 type SECTIONLM struct {
-	subLMLen uint32
-	sublm    []SUBLM
+	SubLMLen uint32
+	Sublm    []SUBLM
 }
 
 type LIGHTGROUP struct {
-	name   string
-	vColor VEC3
+	Name   string
+	VColor VEC3
 	// zero compressed vertexIntensities
 	// verticiesLen needed for decompressing
-	nIntensitySize              uint32
-	zeroCompressedIntensityData []byte
+	NIntensitySize              uint32
+	ZeroCompressedIntensityData []byte
 
 	// section lightmap fix-ups
-	sectionLMLen uint32
-	sectionlm    []SECTIONLM
+	SectionLMLen uint32
+	SectionLM    []SECTIONLM
 }
 
 type RENDERNODE struct {
-	vCenter           VEC3
-	vHalfDims         VEC3
-	sectionLen        uint32
-	sections          []SECTION
-	vericesLen        uint32
-	vertices          []VERTEX
-	trianglesLen      uint32
-	triangles         []TRIANGLE
-	skyPortalLen      uint32
-	skyportals        []SKYPORTAL
-	occluderLen       uint32
-	occluders         []OCCLUDER
-	lightGroupLen     uint32
-	lightGroups       []LIGHTGROUP
-	childFlags        uint8 // 0b(---- --11) last two digits show if children exist
-	childNodeIndicies [2]uint32
+	VCenter           VEC3
+	VHalfDims         VEC3
+	SectionLen        uint32
+	Sections          []SECTION
+	VericesLen        uint32
+	Vertices          []VERTEX
+	TrianglesLen      uint32
+	Triangles         []TRIANGLE
+	SkyPortalLen      uint32
+	Skyportals        []SKYPORTAL
+	OccluderLen       uint32
+	Occluders         []OCCLUDER
+	LightGroupLen     uint32
+	LightGroups       []LIGHTGROUP
+	ChildFlags        uint8 // 0b(---- --11) last two digits show if children exist
+	ChildNodeIndicies [2]uint32
 }
 
 type WMRENDERNODE struct {
-	name        string
-	nodesLen    uint32
-	nodes       []RENDERNODE
-	noChildFlag uint32 // allways 0
+	Name        string
+	NodesLen    uint32
+	Nodes       []RENDERNODE
+	NoChildFlag uint32 // allways 0
 }
 
 type WORLDLIGHTGROUP struct {
-	name  string
-	color VEC3
+	Name  string
+	Color VEC3
 	// poly data is saved as part of the rendering data
-	vOffset VEC3
-	vSize   VEC3
-	data    []byte
+	VOffset VEC3
+	VSize   VEC3
+	Data    []byte
 }
 
 type RENDERDATA struct {
 	// main world
-	renderTreeNodesLen uint32
-	renderNodes        []RENDERNODE
+	RenderTreeNodesLen uint32
+	RenderNodes        []RENDERNODE
 	// world models (adjusted for the physics and vis WM slots)
-	worldModelNodesLen    uint32
-	worldModelRenderNotes []WMRENDERNODE
+	WorldModelNodesLen    uint32
+	WorldModelRenderNotes []WMRENDERNODE
 	// light groups
-	lightGroupsLen uint32
-	lightGroups    []WORLDLIGHTGROUP
+	LightGroupsLen uint32
+	LightGroups    []WORLDLIGHTGROUP
 }
 
 type HEADER struct {
-	version                uint32
-	objectDataPos          uint32
-	blindObjectDataPos     uint32
-	lightgrid_pos          uint32
-	collisionDataPos       uint32
-	particleBlockerDataPos uint32
-	renderDataPos          uint32
-	packerType             uint32
-	packerVersion          uint32
-	future                 [6]uint32
+	Version                uint32
+	ObjectDataPos          uint32
+	BlindObjectDataPos     uint32
+	LightgridPos           uint32
+	CollisionDataPos       uint32
+	ParticleBlockerDataPos uint32
+	RenderDataPos          uint32
+	PackerType             uint32
+	PackerVersion          uint32
+	Future                 [6]uint32
 }
 
 type BLINDOBJECTDATA struct {
-	len    uint32
-	dataID uint32
-	data   []byte
+	Len    uint32
+	DataID uint32
+	Data   []byte
 }
 
 type WORLD struct {
-	worldInfoStrLen uint32
-	worldInfoStr    string
-	worldExtentsMin VEC3
-	worldExtentsMax VEC3
-	worldOffset     VEC3
-	worldTree       WORLDTREE
+	WorldInfoStrLen uint32
+	WorldInfoStr    string
+	WorldExtentsMin VEC3
+	WorldExtentsMax VEC3
+	WorldOffset     VEC3
+	WorldTree       WORLDTREE
 	// World objects
-	worldObjectsLen uint32
-	worldObjects    []WORLDOBJECT
+	WorldObjectsLen uint32
+	WorldObjects    []WORLDOBJECT
 	// Blind objects
-	blindObjectDataSize uint32
-	blindObjectsData    []BLINDOBJECTDATA
+	BlindObjectDataSize uint32
+	BlindObjectsData    []BLINDOBJECTDATA
 	// Lightgrid data
-	lightGrid LIGHTGRID
+	LightGrid LIGHTGRID
 	// Physics data
-	physicsDataLen uint32
-	polies         []POLYGON
-	zero           uint32 // trailer for future expansion.
+	PhysicsDataLen uint32
+	Polies         []POLYGON
+	Zero           uint32 // trailer for future expansion.
 	// Particle blocker data
-	particleBlockerDataLen uint32
-	particleBlockers       []POLYGON
-	zero2                  uint32 // trailer for future expansion.
+	ParticleBlockerDataLen uint32
+	ParticleBlockers       []POLYGON
+	Zero2                  uint32 // trailer for future expansion.
 	// Render data
-	renderData RENDERDATA
+	RenderData RENDERDATA
+}
+
+// uses the leading 16 bits to determine the size of a string to read,
+// reads into a buffer and then converts to a go string.
+func readLithSTRING(file *os.File, destination *string) {
+	var size uint16
+	_ = binary.Read(file, binary.LittleEndian, &size)
+	buf := make([]byte, size)
+	_ = binary.Read(file, binary.LittleEndian, &buf)
+	*destination = string(buf)
 }
 
 func main() {
@@ -310,22 +321,98 @@ func main() {
 
 	// Parse world header
 	var worldHeader HEADER
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.version)
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.objectDataPos)
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.blindObjectDataPos)
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.lightgrid_pos)
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.collisionDataPos)
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.particleBlockerDataPos)
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.renderDataPos)
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.packerType)
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.packerVersion)
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.future[0])
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.future[1])
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.future[2])
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.future[3])
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.future[4])
-	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.future[5])
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.Version)
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.ObjectDataPos)
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.BlindObjectDataPos)
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.LightgridPos)
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.CollisionDataPos)
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.ParticleBlockerDataPos)
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.RenderDataPos)
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.PackerType)
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.PackerVersion)
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.Future[0])
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.Future[1])
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.Future[2])
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.Future[3])
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.Future[4])
+	_ = binary.Read(worldFile, binary.LittleEndian, &worldHeader.Future[5])
 	fmt.Println(worldHeader)
+
+	var world WORLD
+
+	// Parse world objects
+	_, err = worldFile.Seek(int64(worldHeader.ObjectDataPos), io.SeekStart)
+	if err != nil {
+		fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.ObjectDataPos, err)
+		os.Exit(1)
+	}
+	_ = binary.Read(worldFile, binary.LittleEndian, &world.WorldObjectsLen)
+	fmt.Println("\nWorld Objects: ", world.WorldObjectsLen)
+	for range world.WorldObjectsLen {
+		var worldObject WORLDOBJECT
+		_ = binary.Read(worldFile, binary.LittleEndian, &worldObject.ObjectSize)
+		readLithSTRING(worldFile, &worldObject.ObjectType)
+		_ = binary.Read(worldFile, binary.LittleEndian, &worldObject.PropertiesLen)
+		fmt.Println("\nProperty Count (", worldObject.ObjectType, "): ", worldObject.PropertiesLen, "\n")
+		for range worldObject.PropertiesLen {
+			var property PROPERTY
+			readLithSTRING(worldFile, &property.Name)
+			_ = binary.Read(worldFile, binary.LittleEndian, &property.DataTypeFlag)
+			_ = binary.Read(worldFile, binary.LittleEndian, &property.PropertyFlags)
+			_ = binary.Read(worldFile, binary.LittleEndian, &property.DataSize)
+			switch property.DataTypeFlag {
+			case 0:
+				readLithSTRING(worldFile, &property.DataString)
+			case 1:
+				_ = binary.Read(worldFile, binary.LittleEndian, &property.DataVEC3)
+			case 2:
+				_ = binary.Read(worldFile, binary.LittleEndian, &property.DataCOLOR)
+			case 3:
+				_ = binary.Read(worldFile, binary.LittleEndian, &property.DataFloat)
+			case 5:
+				_ = binary.Read(worldFile, binary.LittleEndian, &property.DataBool)
+			case 6:
+				_ = binary.Read(worldFile, binary.LittleEndian, &property.DataUint32)
+			case 7:
+				_ = binary.Read(worldFile, binary.LittleEndian, &property.DataQuaternion)
+			}
+			fmt.Println(property)
+			worldObject.Properties = append(worldObject.Properties, property)
+		}
+		world.WorldObjects = append(world.WorldObjects, worldObject)
+	}
+
+	// _, err = worldFile.Seek(int64(worldHeader.blindObjectDataPos), io.SeekStart)
+	// if err != nil {
+	// 	fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.blindObjectDataPos, err)
+	// 	os.Exit(1)
+	// }
+
+	// _, err = worldFile.Seek(int64(worldHeader.lightgridPos), io.SeekStart)
+	// if err != nil {
+	// 	fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.lightgridPos, err)
+	// 	os.Exit(1)
+	// }
+
+	// _, err = worldFile.Seek(int64(worldHeader.collisionDataPos), io.SeekStart)
+	// if err != nil {
+	// 	fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.collisionDataPos, err)
+	// 	os.Exit(1)
+	// }
+
+	// _, err = worldFile.Seek(int64(worldHeader.particleBlockerDataPos), io.SeekStart)
+	// if err != nil {
+	// 	fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.particleBlockerDataPos, err)
+	// 	os.Exit(1)
+	// }
+
+	// _, err = worldFile.Seek(int64(worldHeader.renderDataPos), io.SeekStart)
+	// if err != nil {
+	// 	fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.renderDataPos, err)
+	// 	os.Exit(1)
+	// }
+
+	// fmt.Println(world)
 
 	// Parse WorldInfo
 
