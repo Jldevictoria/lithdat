@@ -342,18 +342,19 @@ func main() {
 
 	// Parse world objects
 	_, err = worldFile.Seek(int64(worldHeader.ObjectDataPos), io.SeekStart)
+	fmt.Println("\nParsing WorldObjectsData @", worldHeader.ObjectDataPos)
 	if err != nil {
 		fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.ObjectDataPos, err)
 		os.Exit(1)
 	}
 	_ = binary.Read(worldFile, binary.LittleEndian, &world.WorldObjectsLen)
-	fmt.Println("\nWorld Objects: ", world.WorldObjectsLen)
+	fmt.Println("\nWorld Objects:", world.WorldObjectsLen)
 	for range world.WorldObjectsLen {
 		var worldObject WORLDOBJECT
 		_ = binary.Read(worldFile, binary.LittleEndian, &worldObject.ObjectSize)
 		readLithSTRING(worldFile, &worldObject.ObjectType)
 		_ = binary.Read(worldFile, binary.LittleEndian, &worldObject.PropertiesLen)
-		fmt.Println("\nProperty Count (", worldObject.ObjectType, "): ", worldObject.PropertiesLen, "\n")
+		fmt.Println("\nProperty Count (", worldObject.ObjectType, "):", worldObject.PropertiesLen, "\n")
 		for range worldObject.PropertiesLen {
 			var property PROPERTY
 			readLithSTRING(worldFile, &property.Name)
@@ -382,50 +383,48 @@ func main() {
 		world.WorldObjects = append(world.WorldObjects, worldObject)
 	}
 
-	// _, err = worldFile.Seek(int64(worldHeader.blindObjectDataPos), io.SeekStart)
-	// if err != nil {
-	// 	fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.blindObjectDataPos, err)
-	// 	os.Exit(1)
-	// }
+	_, err = worldFile.Seek(int64(worldHeader.BlindObjectDataPos), io.SeekStart)
+	fmt.Println("\nParsing BlindObjectsData @", worldHeader.BlindObjectDataPos)
+	if err != nil {
+		fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.BlindObjectDataPos, err)
+		os.Exit(1)
+	}
+	_ = binary.Read(worldFile, binary.LittleEndian, &world.BlindObjectDataSize)
+	fmt.Println(world.BlindObjectDataSize)
 
-	// _, err = worldFile.Seek(int64(worldHeader.lightgridPos), io.SeekStart)
-	// if err != nil {
-	// 	fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.lightgridPos, err)
-	// 	os.Exit(1)
-	// }
+	_, err = worldFile.Seek(int64(worldHeader.LightgridPos), io.SeekStart)
+	fmt.Println("\nParsing LightgridData @", worldHeader.LightgridPos)
+	if err != nil {
+		fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.LightgridPos, err)
+		os.Exit(1)
+	}
+	// _ = binary.Read(worldFile, binary.LittleEndian, &)
+	// fmt.Println()
 
-	// _, err = worldFile.Seek(int64(worldHeader.collisionDataPos), io.SeekStart)
-	// if err != nil {
-	// 	fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.collisionDataPos, err)
-	// 	os.Exit(1)
-	// }
+	_, err = worldFile.Seek(int64(worldHeader.CollisionDataPos), io.SeekStart)
+	fmt.Println("\nParsing Physics/CollisionData @", worldHeader.CollisionDataPos)
+	if err != nil {
+		fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.CollisionDataPos, err)
+		os.Exit(1)
+	}
+	_ = binary.Read(worldFile, binary.LittleEndian, &world.PhysicsDataLen)
+	fmt.Println(world.PhysicsDataLen)
 
-	// _, err = worldFile.Seek(int64(worldHeader.particleBlockerDataPos), io.SeekStart)
-	// if err != nil {
-	// 	fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.particleBlockerDataPos, err)
-	// 	os.Exit(1)
-	// }
+	_, err = worldFile.Seek(int64(worldHeader.ParticleBlockerDataPos), io.SeekStart)
+	fmt.Println("\nParsing ParticleBlockerData @", worldHeader.ParticleBlockerDataPos)
+	if err != nil {
+		fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.ParticleBlockerDataPos, err)
+		os.Exit(1)
+	}
+	_ = binary.Read(worldFile, binary.LittleEndian, &world.ParticleBlockerDataLen)
+	fmt.Println(world.ParticleBlockerDataLen)
 
-	// _, err = worldFile.Seek(int64(worldHeader.renderDataPos), io.SeekStart)
-	// if err != nil {
-	// 	fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.renderDataPos, err)
-	// 	os.Exit(1)
-	// }
+	_, err = worldFile.Seek(int64(worldHeader.RenderDataPos), io.SeekStart)
+	fmt.Println("\nParsing RenderData @", worldHeader.ParticleBlockerDataPos)
+	if err != nil {
+		fmt.Printf("Error seeking to offset %d: %v\n", worldHeader.RenderDataPos, err)
+		os.Exit(1)
+	}
 
 	// fmt.Println(world)
-
-	// Parse WorldInfo
-
-	// Parse WorldTree
-
-	// DEBUG_BYTE
-
-	// Parse WorldModelHeader
-
-	// Parse Root WorldModel
-
-	// Parse WorldModels
-
-	// ->>>>  WorldBSP,
-
 }
